@@ -19,7 +19,6 @@ namespace CpuUsageTest
         private static void Main(string[] args)
         {
             StartCpuCounter();
-
             SpawnThreadsAndJoin(4);
         }
 
@@ -29,10 +28,11 @@ namespace CpuUsageTest
             var counter = 0;
             while (true)
             {
-                if (random.Next() == 982347234)
+                if (random.Next() % 928530924 == 0)
                     counter++;
                 counter = counter + 1;
             }
+            // ReSharper disable once FunctionNeverReturns
         }
 
         private static Thread SpawnThread()
@@ -54,10 +54,26 @@ namespace CpuUsageTest
 
         private static int GetCpuUsage() => (int)CpuCounter.NextValue();
 
+        private static Tuple<int, int> GetThreadPoolThreads()
+        {
+            int maxWorkers;
+            int maxIocp;
+            int availWorkers;
+            int availIocp;
+            ThreadPool.GetMaxThreads(out maxWorkers, out maxIocp);
+            ThreadPool.GetAvailableThreads(out availWorkers, out availIocp);
+            return new Tuple<int, int>(maxWorkers - availWorkers, maxIocp - availIocp);
+        }
+
         private static void StartCpuCounter()
         {
             _timer = new Timer(1000);
-            _timer.Elapsed += (sender, args) => Console.WriteLine($"Cpu usage: {GetCpuUsage()}");
+            _timer.Elapsed += (sender, args) =>
+            {
+                var threads = GetThreadPoolThreads();
+                Console.WriteLine(
+                    $"{Environment.CurrentManagedThreadId} Cpu usage: {GetCpuUsage()} workers: {threads.Item1}; iocp: {threads.Item2}");
+            };
             _timer.Start();
         }
     }
